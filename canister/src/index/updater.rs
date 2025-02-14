@@ -58,7 +58,7 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
                   );
                   return;
                 }
-                Reorg::prune_change_record(height);
+                Reorg::prune_change_record(network, height);
                 for subscriber in subscribers.iter() {
                   let _ = crate::notifier::notify_new_block(
                     *subscriber,
@@ -105,7 +105,6 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
           let message = format!("failed to get_block_hash at height {}: {:?}", height, e);
           let is_new_message = CRITICAL.with_borrow(|sink| {
             sink.iter().last().map_or(true, |entry| {
-              log!(INFO, "last_message: {:?}", entry.message);
               entry.message != message
             })
           });

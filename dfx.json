@@ -7,6 +7,13 @@
       "candid": "./canister/runes-indexer.did",
       "package": "runes-indexer",
       "type": "rust"
+    },
+    "runes-indexer-testnet": {
+      "optimize": "cycles",
+      "gzip": true,
+      "candid": "./canister/runes-indexer.did",
+      "package": "runes-indexer",
+      "type": "rust"
     }
   },
   "defaults": {

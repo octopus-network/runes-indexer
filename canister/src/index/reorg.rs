@@ -24,7 +24,13 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-const MAX_RECOVERABLE_REORG_DEPTH: u32 = 6;
+pub fn get_max_recoverable_reorg_depth(network: BitcoinNetwork) -> u32 {
+  match network {
+    BitcoinNetwork::Regtest => 6,
+    BitcoinNetwork::Testnet => 24,
+    BitcoinNetwork::Mainnet => 6,
+  }
+}
 
 pub struct Reorg {}
 
@@ -38,7 +44,7 @@ impl Reorg {
     match index_prev_blockhash {
       Some(index_prev_blockhash) if index_prev_blockhash == bitcoind_prev_blockhash => Ok(()),
       Some(index_prev_blockhash) if index_prev_blockhash != bitcoind_prev_blockhash => {
-        for depth in 1..=MAX_RECOVERABLE_REORG_DEPTH {
+        for depth in 1..=get_max_recoverable_reorg_depth(network) {
           let index_block_hash =
             crate::index::mem_block_hash(height.checked_sub(depth).expect("height overflow"))
               .ok_or(Error::Unrecoverable)?;
@@ -129,9 +135,9 @@ impl Reorg {
     );
   }
 
-  pub(crate) fn prune_change_record(height: u32) {
-    if height >= MAX_RECOVERABLE_REORG_DEPTH {
-      let h = height - MAX_RECOVERABLE_REORG_DEPTH;
+  pub(crate) fn prune_change_record(network: BitcoinNetwork, height: u32) {
+    if height >= get_max_recoverable_reorg_depth(network) {
+      let h = height - get_max_recoverable_reorg_depth(network);
       log!(INFO, "clearing change record at height {h}");
       crate::index::mem_prune_change_record(h);
       crate::index::mem_prune_statistic_runes(h);
