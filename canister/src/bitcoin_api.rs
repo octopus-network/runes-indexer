@@ -57,10 +57,8 @@ pub async fn get_block_hash(
   network: BitcoinNetwork,
   height: u32,
 ) -> crate::Result<Option<BlockHash>> {
-  // Bitcoin canister integration is temporarily disabled for regtest and testnet4.
-  // As a workaround, we're using direct HTTPS outcalls to Bitcoin node to fetch block hashes
-  // for these networks.
-  if network == BitcoinNetwork::Regtest || network == BitcoinNetwork::Testnet {
+  // We're using direct HTTPS outcalls to Bitcoin node to fetch block hashes for regtest
+  if network == BitcoinNetwork::Regtest {
     return match crate::rpc::get_block_hash(height).await {
       Ok(hash) => Ok(Some(hash)),
       Err(_err) => Ok(None),

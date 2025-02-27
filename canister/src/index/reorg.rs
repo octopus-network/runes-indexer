@@ -27,7 +27,7 @@ impl std::error::Error for Error {}
 pub fn get_max_recoverable_reorg_depth(network: BitcoinNetwork) -> u32 {
   match network {
     BitcoinNetwork::Regtest => 6,
-    BitcoinNetwork::Testnet => 24,
+    BitcoinNetwork::Testnet => 64,
     BitcoinNetwork::Mainnet => 6,
   }
 }

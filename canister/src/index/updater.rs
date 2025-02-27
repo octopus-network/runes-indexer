@@ -104,9 +104,10 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
         Err(e) => {
           let message = format!("failed to get_block_hash at height {}: {:?}", height, e);
           let is_new_message = CRITICAL.with_borrow(|sink| {
-            sink.iter().last().map_or(true, |entry| {
-              entry.message != message
-            })
+            sink
+              .iter()
+              .last()
+              .map_or(true, |entry| entry.message != message)
           });
 
           if is_new_message {
