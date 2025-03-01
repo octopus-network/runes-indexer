@@ -12,7 +12,6 @@ Runes Indexer is a canister deployed on the [IC](https://internetcomputer.org/) 
 
 **Deployment Status:**
 - New Mainnet Deployment: [`kzrva-ziaaa-aaaar-qamyq-cai`](https://dashboard.internetcomputer.org/canister/kzrva-ziaaa-aaaar-qamyq-cai) (Maintained by [Omnity Network](https://omnity.network/))
-- Legacy Deployment: [`o25oi-jaaaa-aaaal-ajj6a-cai`](https://dashboard.internetcomputer.org/canister/o25oi-jaaaa-aaaal-ajj6a-cai) (To be deprecated)
 
 ## Repository Components
 
