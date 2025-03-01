@@ -1,5 +1,5 @@
 use crate::index::entry::Entry;
-use crate::index::INFO;
+use crate::index::{CRITICAL, INFO};
 use bitcoin::block::BlockHash;
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
@@ -45,22 +45,56 @@ impl Reorg {
       Some(index_prev_blockhash) if index_prev_blockhash == bitcoind_prev_blockhash => Ok(()),
       Some(index_prev_blockhash) if index_prev_blockhash != bitcoind_prev_blockhash => {
         for depth in 1..=get_max_recoverable_reorg_depth(network) {
-          let index_block_hash =
-            crate::index::mem_block_hash(height.checked_sub(depth).expect("height overflow"))
-              .ok_or(Error::Unrecoverable)?;
+          let check_height = height.checked_sub(depth).ok_or_else(|| {
+            log!(CRITICAL, "Height overflow at depth {}", depth);
+            Error::Unrecoverable
+          })?;
 
-          let bitcoin_height = height.checked_sub(depth).expect("height overflow");
-          let block_hash = crate::bitcoin_api::get_block_hash(network, bitcoin_height)
-            .await
-            .map_err(|_| Error::Unrecoverable)?;
+          let index_block_hash = crate::index::mem_block_hash(check_height).ok_or_else(|| {
+            log!(
+              CRITICAL,
+              "Missing index block hash at height {}",
+              check_height
+            );
+            Error::Unrecoverable
+          })?;
 
-          let bitcoin_canister_block_hash = block_hash.ok_or(Error::Unrecoverable)?;
-
-          if index_block_hash == bitcoin_canister_block_hash {
-            return Err(Error::Recoverable { height, depth });
+          match crate::bitcoin_api::get_block_hash(network, check_height).await {
+            Ok(Some(bitcoin_block_hash)) => {
+              if index_block_hash == bitcoin_block_hash {
+                log!(
+                  INFO,
+                  "Found common ancestor at height {} (depth {})",
+                  check_height,
+                  depth
+                );
+                return Err(Error::Recoverable { height, depth });
+              }
+            }
+            Ok(None) => {
+              log!(
+                INFO,
+                "No Bitcoin block hash at height {}, continuing",
+                check_height
+              );
+              continue;
+            }
+            Err(e) => {
+              log!(
+                CRITICAL,
+                "Failed to get Bitcoin block hash at height {}: {:?}",
+                check_height,
+                e
+              );
+              return Err(Error::Unrecoverable);
+            }
           }
         }
 
+        log!(
+          CRITICAL,
+          "No common ancestor found within recoverable depth"
+        );
         Err(Error::Unrecoverable)
       }
       _ => Ok(()),
