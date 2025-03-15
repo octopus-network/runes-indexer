@@ -9,6 +9,8 @@ use runes_indexer::logs::{CRITICAL, INFO, WARNING};
 use runes_indexer_interface::{Error, GetEtchingResult, RuneBalance, RuneEntry, Terms};
 use std::str::FromStr;
 
+pub const MAX_OUTPOINTS: usize = 256;
+
 #[query]
 #[candid_method(query)]
 pub fn get_latest_block() -> (u32, String) {
@@ -92,7 +94,7 @@ pub fn get_rune_by_id(str_rune_id: String) -> Option<RuneEntry> {
 pub fn get_rune_balances_for_outputs(
   outpoints: Vec<String>,
 ) -> Result<Vec<Option<Vec<RuneBalance>>>, Error> {
-  if outpoints.len() > 64 {
+  if outpoints.len() > MAX_OUTPOINTS {
     return Err(Error::MaxOutpointsExceeded);
   }
 
