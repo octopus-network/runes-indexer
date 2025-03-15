@@ -88,6 +88,9 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
                   );
                   return;
                 }
+                reorg::Error::Retry => {
+                  log!(INFO, "retry reorg detected at height {}", height);
+                }
               },
             }
           }

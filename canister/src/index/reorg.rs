@@ -9,6 +9,7 @@ use std::fmt::{self, Display, Formatter};
 pub(crate) enum Error {
   Recoverable { height: u32, depth: u32 },
   Unrecoverable,
+  Retry,
 }
 
 impl Display for Error {
@@ -18,6 +19,7 @@ impl Display for Error {
         write!(f, "{depth} block deep reorg detected at height {height}")
       }
       Self::Unrecoverable => write!(f, "unrecoverable reorg detected"),
+      Self::Retry => write!(f, "retry reorg detected"),
     }
   }
 }
@@ -71,22 +73,13 @@ impl Reorg {
                 return Err(Error::Recoverable { height, depth });
               }
             }
-            Ok(None) => {
+            _ => {
               log!(
                 INFO,
-                "No Bitcoin block hash at height {}, continuing",
+                "The block hash at height {} is not found. Retrying.",
                 check_height
               );
-              continue;
-            }
-            Err(e) => {
-              log!(
-                CRITICAL,
-                "Failed to get Bitcoin block hash at height {}: {:?}",
-                check_height,
-                e
-              );
-              return Err(Error::Unrecoverable);
+              return Err(Error::Retry);
             }
           }
         }
