@@ -11,7 +11,8 @@ An onchain runes indexer on the Internet Computer
 Runes Indexer is a canister deployed on the [IC](https://internetcomputer.org/) that continuously fetches Bitcoin blocks through [HTTPS outcalls](https://internetcomputer.org/https-outcalls) from Bitcoin RPC. The blocks are verified using IC's [Bitcoin integration](https://internetcomputer.org/docs/current/references/bitcoin-how-it-works). Once verified, the indexer parses and indexes runes information within each block. The implementation aligns with [ord 0.22.1](https://github.com/ordinals/ord/releases/tag/0.22.1).
 
 **Deployment Status:**
-- New Mainnet Deployment: [`kzrva-ziaaa-aaaar-qamyq-cai`](https://dashboard.internetcomputer.org/canister/kzrva-ziaaa-aaaar-qamyq-cai) (Maintained by [Omnity Network](https://omnity.network/))
+- Mainnet: [`kzrva-ziaaa-aaaar-qamyq-cai`](https://dashboard.internetcomputer.org/canister/kzrva-ziaaa-aaaar-qamyq-cai) (Maintained by [Omnity Network](https://omnity.network/))
+- Testnet4: [`f2dwm-caaaa-aaaao-qjxlq-cai`](https://dashboard.internetcomputer.org/canister/f2dwm-caaaa-aaaao-qjxlq-cai)
 
 ## Repository Components
 
