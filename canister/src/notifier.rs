@@ -8,6 +8,7 @@ type BlockHeight = u32;
 pub struct NewBlockRequest {
   pub block_height: BlockHeight,
   pub block_hash: String,
+  pub block_timestamp: u64,
   pub tx_ids: Vec<String>,
 }
 
@@ -15,11 +16,13 @@ pub async fn notify_new_block(
   canister_id: Principal,
   block_height: u32,
   block_hash: String,
+  block_timestamp: u64,
   tx_ids: Vec<String>,
 ) -> crate::Result<()> {
   let req = NewBlockRequest {
     block_height,
     block_hash,
+    block_timestamp,
     tx_ids,
   };
 

@@ -49,6 +49,7 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
                   .iter()
                   .map(|(_, txid)| txid.to_string())
                   .collect();
+                let block_timestamp = block.header.time as u64;
                 if let Err(e) = index_block(height, block).await {
                   log!(
                     CRITICAL,
@@ -64,15 +65,17 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
                     *subscriber,
                     height,
                     block_hash.to_string(),
+                    block_timestamp,
                     txids.clone(),
                   )
                   .await;
                   log!(
                     INFO,
-                    "notified subscriber: {:?} with block_height: {:?} block_hash: {:?}",
+                    "notified subscriber: {:?} with block_height: {:?} block_hash: {:?} block_timestamp: {:?}",
                     subscriber.to_text(),
                     height,
-                    block_hash
+                    block_hash,
+                    block_timestamp
                   );
                 }
               }
