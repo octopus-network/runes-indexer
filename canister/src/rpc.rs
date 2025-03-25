@@ -80,7 +80,7 @@ fn partial_request(
   let uniq = hex::encode(uniq[0..16].to_vec());
   let cycles = estimate_cycles(
     body.len() as u64 + 512,
-    range.1 - range.0 + 1 + 512,
+    range.1 - range.0 + 1 + 999,
     subnet_nodes,
   );
   (
@@ -88,7 +88,7 @@ fn partial_request(
       url: url.to_string(),
       method: HttpMethod::POST,
       body: Some(body),
-      max_response_bytes: Some(range.1 - range.0 + 1 + 512),
+      max_response_bytes: Some(range.1 - range.0 + 1 + 999),
       transform: Some(TransformContext {
         function: TransformFunc(candid::Func {
           principal: ic_cdk::api::id(),
