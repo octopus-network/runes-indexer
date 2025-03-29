@@ -1,6 +1,7 @@
 use super::*;
 use crate::index::entry::RuneBalance;
 use crate::into_usize::IntoUsize;
+use crate::logs::WARNING;
 
 pub(super) struct RuneUpdater {
   pub(super) block_time: u32,
@@ -417,9 +418,12 @@ impl RuneUpdater {
           continue;
         }
 
-        let commit_tx_height = crate::rpc::get_block_header_info(&tx_info.blockhash.unwrap())
-          .await?
-          .height;
+        let block_hash = tx_info.blockhash.ok_or_else(|| {
+          log!(WARNING, "Transaction {} has no block hash", tx_info.txid);
+          anyhow!("Transaction {} has no block hash", tx_info.txid)
+        })?;
+
+        let commit_tx_height = crate::rpc::get_block_header_info(&block_hash).await?.height;
 
         let confirmations = self
           .height
