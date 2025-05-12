@@ -5,7 +5,6 @@ mod into_usize;
 pub mod logs;
 mod notifier;
 pub mod rpc;
-
 use anyhow::Error;
 use chrono::{DateTime, TimeZone, Utc};
 
