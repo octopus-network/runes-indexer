@@ -21,14 +21,12 @@ const ETCHING_FEE_UTXOS_MEMORY_ID: MemoryId = MemoryId::new(101);
 const PENDING_ETCHING_REQUESTS_MEMORY_ID: MemoryId = MemoryId::new(102);
 const FINALIZED_ETCHING_REQUESTS_MEMORY_ID: MemoryId = MemoryId::new(103);
 
-
 thread_local! {
     static __STATE: RefCell<Option<EtchingState>> = RefCell::default();
     
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(
         MemoryManager::init(DefaultMemoryImpl::default())
     );
-
 }
 
 #[derive(serde::Deserialize, Serialize)]
@@ -53,6 +51,22 @@ pub struct EtchingState {
     pub is_request_etching: bool,
 }
 
+impl From<EtchingStateArgs> for EtchingState {
+    fn from(value: EtchingStateArgs) -> Self {
+        EtchingState {
+            ecdsa_key_name: value.ecdsa_key_name,
+            etching_acount_info: Default::default(),
+            btc_network: value.btc_network,
+            etching_fee_utxos: init_etching_fee_utxos(),
+            pending_etching_requests: init_pending_etching_requests(),
+            finalized_etching_requests: init_finalized_etching_requests(),
+            etching_fee: value.etching_fee,
+            bitcoin_fee_rate: Default::default(),
+            is_process_etching_msg: false,
+            is_request_etching: false,
+        }
+    }
+}
 pub fn init_etching_fee_utxos() -> StableVec<crate::runes_etching::Utxo, VMem> {
     StableVec::init(with_memory_manager(|m| m.get(ETCHING_FEE_UTXOS_MEMORY_ID))).unwrap()
 }
@@ -99,6 +113,11 @@ pub fn replace_state(state: EtchingState) {
         *s.borrow_mut() = Some(state);
     });
 }
+pub fn no_initial() -> bool {
+    __STATE.with(|s| {
+        s.borrow().is_none()
+    })
+}
 
 pub async fn init_etching_account_info() -> EtchingAccountInfo {
     let account_info = read_state(|s| s.etching_acount_info.clone());
@@ -130,4 +149,36 @@ pub async fn init_etching_account_info() -> EtchingAccountInfo {
 
 pub fn update_bitcoin_fee_rate(fee_rate: BitcoinFeeRate) {
     mutate_state(|s|s.bitcoin_fee_rate = fee_rate);
+}
+
+#[derive(CandidType, serde::Deserialize)]
+pub enum EtchingUpgradeArgs {
+    Init(EtchingStateArgs),
+    Upgrade(Option<EtchingStateArgs>),
+}
+
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct EtchingStateArgs {
+    pub btc_network: BitcoinNetwork,
+    pub ecdsa_key_name: String,
+    pub etching_fee: Option<u64>,
+}
+
+pub fn post_upgrade(upgrade_args: EtchingUpgradeArgs) {
+    match upgrade_args {
+        EtchingUpgradeArgs::Init(args) => {
+            if no_initial() {
+                let state = EtchingState::from(args);
+                replace_state(state)
+            }
+        }
+        EtchingUpgradeArgs::Upgrade(args) => {
+            if let Some(a) = args {
+                if let Some(fee) = a.etching_fee {
+                    mutate_state(|s|s.etching_fee = Some(fee));   
+                }
+            }
+        }
+    }
 }

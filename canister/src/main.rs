@@ -1,4 +1,4 @@
-use bitcoin::{OutPoint, Txid};
+use bitcoin::{OutPoint};
 use candid::{candid_method, Principal};
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
@@ -8,12 +8,15 @@ use runes_indexer::index::entry::Entry;
 use common::logs::{CRITICAL, INFO, WARNING};
 use runes_indexer_interface::{Error, GetEtchingResult, RuneBalance, RuneEntry, Terms};
 use std::str::FromStr;
+use std::time::Duration;
 use ic_cdk::caller;
-use etching::runes_etching::etching_state::update_bitcoin_fee_rate;
+use ic_cdk_timers::set_timer_interval;
+use etching::runes_etching::etching_state::{update_bitcoin_fee_rate, EtchingUpgradeArgs};
 use etching::runes_etching::EtchingArgs;
 use etching::runes_etching::guard::RequestEtchingGuard;
 use etching::runes_etching::transactions::internal_etching;
 use etching::runes_etching::types::SetTxFeePerVbyteArgs;
+use runes_indexer::etchin_tasks::process_etching_task;
 
 pub const MAX_OUTPOINTS: usize = 256;
 
@@ -27,13 +30,7 @@ pub fn get_latest_block() -> (u32, String) {
 #[query]
 #[candid_method(query)]
 pub fn get_etching(txid: String) -> Option<GetEtchingResult> {
-  let txid = Txid::from_str(&txid).ok()?;
-  let cur_height = runes_indexer::index::mem_latest_block_height().expect("No block height found");
-
-  runes_indexer::index::mem_get_etching(txid).map(|(id, entry)| GetEtchingResult {
-    confirmations: cur_height - entry.block as u32 + 1,
-    rune_id: id.to_string(),
-  })
+  runes_indexer::index::get_etching(txid)
 }
 
 #[query]
@@ -247,7 +244,7 @@ fn init(runes_indexer_args: RunesIndexerArgs) {
 }
 
 #[post_upgrade]
-fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
+fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>, etching_args: Option<EtchingUpgradeArgs>) {
   match runes_indexer_args {
     Some(RunesIndexerArgs::Upgrade(Some(upgrade_args))) => {
       let mut config = runes_indexer::index::mem_get_config();
@@ -265,6 +262,14 @@ fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
       "Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.",
     ),
   }
+  
+  //Etching 
+  if let Some(args) = etching_args {
+      etching::runes_etching::etching_state::post_upgrade(args);
+  }
+  //start etching task
+  set_timer_interval(Duration::from_secs(10), process_etching_task);
+
 }
 
 /*----------------etching interfaces-------------------*/

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use candid::CandidType;
@@ -8,32 +8,16 @@ use runes_indexer_interface::GetEtchingResult;
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::runes_etching::management::{get_bitcoin_balance, CallSource};
+use crate::runes_etching::management::get_bitcoin_balance;
 use crate::runes_etching::transactions::EtchingStatus::{
-    Final, SendCommitFailed, SendRevealFailed, SendRevealSuccess,Initial
+    Final, Initial, SendCommitFailed, SendRevealFailed, SendRevealSuccess
 };
 use crate::runes_etching::transactions::{EtchingStatus, SendEtchingRequest};
 
-use common::logs::INFO;
-use crate::{MIN_NANOS, SEC_NANOS};
-use crate::runes_etching::error::{CallError};
 use crate::runes_etching::etching_state::{mutate_state, read_state};
 use crate::runes_etching::management::send_etching;
-
-pub async fn get_etching(txid: &str) -> Result<Option<GetEtchingResult>, CallError> {
-   /* let method = "get_etching";
-    let ord_principal = read_state(|s| s.ord_indexer_principal.clone().unwrap());
-    let resp: (Option<GetEtchingResult>,) =
-        ic_cdk::api::call::call(ord_principal, method, (txid,))
-            .await
-            .map_err(|(code, message)| CallError {
-                method: method.to_string(),
-                reason: Reason::from_reject(code, message),
-            })?;
-    Ok(resp.0)*/
-    //TODO
-    todo!()
-}
+use crate::{MIN_NANOS, SEC_NANOS};
+use common::logs::INFO;
 
 #[derive(Debug, Eq, PartialEq, Error, CandidType, Deserialize)]
 enum OrdError {
@@ -101,7 +85,8 @@ fn finalization_time_estimate(min_confirmations: u32, network: BitcoinNetwork) -
     )
 }
 
-pub async fn handle_etching_result_task() {
+pub async fn handle_etching_result_task(f: impl Fn(String) -> Option<GetEtchingResult>)
+{
     if read_state(|s| s.pending_etching_requests.is_empty()) {
         return;
     }
@@ -121,7 +106,6 @@ pub async fn handle_etching_result_task() {
                     network,
                     &req.script_out_address,
                     6,
-                    CallSource::Custom,
                 )
                 .await
                 .unwrap_or_default();
@@ -138,30 +122,22 @@ pub async fn handle_etching_result_task() {
                 req.reveal_at = ic_cdk::api::time();
                 mutate_state(|s| s.pending_etching_requests.insert(k, req));
             }
-            EtchingStatus::SendRevealSuccess => {
+            SendRevealSuccess => {
                 if !check_time(1, req.reveal_at) {
                     continue;
                 }
-                //query etching,
-                let tx = req.txs[1].txid().to_string();
-                let rune = get_etching(tx.as_str()).await;
+                let tx = req.txs[1].compute_txid().to_string();
+                let rune = f(tx.clone());
                 match rune {
-                    Ok(resp_opt) => {
-                        match resp_opt {
-                            None => {
-                            }
-                            Some(resp) => {
-                                mutate_state(|s| {
-                                    req.status = Final;
-                                    s.finalized_etching_requests.insert(k.clone(), req);
-                                });
-                                mutate_state(|s| s.pending_etching_requests.remove(&k));
-                                log!(INFO, "Etching result:  {}.{}, {}",tx, resp.rune_id.clone(),resp.confirmations);
-                            }
-                        }
+                    None => {
                     }
-                    Err(e) => {
-                        log!(INFO, "query etching result error: {}", e.to_string());
+                    Some(resp) => {
+                        mutate_state(|s| {
+                            req.status = Final;
+                            s.finalized_etching_requests.insert(k.clone(), req);
+                        });
+                        mutate_state(|s| s.pending_etching_requests.remove(&k));
+                        log!(INFO, "Etching result:  {}.{}, {}",tx, resp.rune_id.clone(),resp.confirmations);
                     }
                 }
             }

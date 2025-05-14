@@ -7,10 +7,3 @@ pub struct Destination {
     pub receiver: String,
     pub token: Option<String>,
 }
-
-impl Destination {
-    #[inline]
-    pub fn effective_token(&self) -> String {
-        self.token.clone().unwrap_or_default()
-    }
-}

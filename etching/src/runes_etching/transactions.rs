@@ -4,11 +4,10 @@ use std::str::FromStr;
 use bitcoin::{Address, Amount, PublicKey, Transaction, Txid};
 use candid::{CandidType, Deserialize};
 use ic_canister_log::log;
-use ic_cdk::caller;
 use ic_stable_structures::storable::Bound;
 use ic_stable_structures::Storable;
 
-use ordinals::{Etching, Rune, SpacedRune, Terms};
+use ordinals::{Etching, SpacedRune, Terms};
 use serde::Serialize;
 use common::logs::INFO;
 use crate::runes_etching::constants::POSTAGE;
@@ -17,7 +16,7 @@ use crate::runes_etching::fee_calculator::{
 };
 use crate::runes_etching::fees::Fees;
 use crate::runes_etching::transactions::EtchingStatus::{SendCommitFailed, SendCommitSuccess};
-use crate::runes_etching::wallet::builder::{EtchingKey, EtchingTransactionArgs};
+use crate::runes_etching::wallet::builder::EtchingTransactionArgs;
 use crate::runes_etching::wallet::{CreateCommitTransactionArgsV2, Runestone};
 use crate::runes_etching::{management, EtchingArgs, InternalEtchingArgs, LogoParams, Nft, OrdResult, OrdTransactionBuilder, SignCommitTransactionArgs, Utxo};
 use crate::runes_etching::error::{CallError, Reason};
@@ -43,8 +42,8 @@ impl From<SendEtchingRequest> for SendEtchingInfo {
         SendEtchingInfo {
             etching_args: value.etching_args.clone().into(),
             err_info,
-            commit_txid: value.txs[0].txid().to_string(),
-            reveal_txid: value.txs[1].txid().to_string(),
+            commit_txid: value.txs[0].compute_txid().to_string(),
+            reveal_txid: value.txs[1].compute_txid().to_string(),
             time_at: value.commit_at,
             script_out_address: value.script_out_address,
             status: value.status,
@@ -94,7 +93,7 @@ pub fn find_commit_remain_fee(t: &Transaction) -> Option<Utxo> {
     if t.output.len() > 1 {
         let r = t.output.last().cloned().unwrap();
         let utxo = Utxo {
-            id: t.txid(),
+            id: t.compute_txid(),
             index: (t.output.len() - 1) as u32,
             amount: r.value,
         };
@@ -108,7 +107,7 @@ pub async fn etching_rune(
     fee_rate: u64,
     args: &InternalEtchingArgs,
 ) -> anyhow::Result<(SendEtchingRequest, u64)> {
-    let (commit_tx_size, reveal_size) =
+    let (_commit_tx_size, reveal_size) =
         estimate_tx_vbytes(args.rune_name.as_str(), args.logo.clone()).await?;
     let icp_fee_amt = read_state(|s|s.etching_fee).unwrap_or(100000000);
     let allowance = check_allowance(icp_fee_amt).await?;
@@ -248,7 +247,7 @@ pub async fn generate_etching_transactions(
     let reveal_transaction = builder
         .build_etching_transaction(EtchingTransactionArgs {
             input: Utxo {
-                id: signed_commit_tx.txid(),
+                id: signed_commit_tx.compute_txid(),
                 index: 0,
                 amount: commit_tx.reveal_balance,
             },
@@ -337,7 +336,7 @@ pub async fn estimate_tx_vbytes(
     let reveal_transaction = builder
         .build_etching_transaction(EtchingTransactionArgs {
             input: Utxo {
-                id: commit_tx.unsigned_tx.txid(),
+                id: commit_tx.unsigned_tx.compute_txid(),
                 index: 0,
                 amount: commit_tx.reveal_balance,
             },
@@ -366,7 +365,7 @@ pub async fn internal_etching(args: EtchingArgs) -> Result<String, String> {
     match r {
         Ok((sr, allowance)) => {
             if sr.status == SendCommitSuccess {
-                let commit_tx_id = sr.txs[0].txid().to_string();
+                let commit_tx_id = sr.txs[0].compute_txid().to_string();
                 mutate_state(|s| s.pending_etching_requests.insert(commit_tx_id.clone(), sr));
                 let r = transfer_etching_fees(allowance as u128).await;
                 log!(INFO, "transfer etching fee result: {:?}", r);

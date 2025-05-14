@@ -150,7 +150,6 @@ pub async fn get_bitcoin_balance(
     network: BitcoinNetwork,
     address: &Address,
     min_confirmations: u32,
-    call_source: CallSource,
 ) -> Result<Satoshi, CallError> {
     // NB. The minimum number of cycles that need to be sent with the call is 10B (4B) for
     // Bitcoin mainnet (Bitcoin testnet):
@@ -165,7 +164,6 @@ pub async fn get_bitcoin_balance(
     async fn bitcoin_get_balance(
         req: &GetBalanceRequest,
         cycles: u64,
-        source: CallSource,
     ) -> Result<Satoshi, CallError> {
         call("bitcoin_get_balance", cycles, req).await
     }
@@ -181,7 +179,6 @@ pub async fn get_bitcoin_balance(
             min_confirmations: Some(min_confirmations),
         },
         get_balance_cost_cycles,
-        call_source,
     )
         .await
 }

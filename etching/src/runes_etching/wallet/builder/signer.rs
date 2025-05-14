@@ -192,7 +192,7 @@ impl MixSigner {
             sighash,
         )
         .await
-        .map_err(|e| {
+        .map_err(|_| {
             OrdError::UnexpectedSignature
         })?;
         Signature::from_compact(sec1_signature.as_slice()).map_err(OrdError::Signature)

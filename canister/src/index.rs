@@ -25,7 +25,9 @@ use ordinals::{
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::atomic::{self, AtomicBool};
+use runes_indexer_interface::GetEtchingResult;
 
 pub mod entry;
 mod lot;
@@ -112,6 +114,15 @@ pub fn cancel_shutdown() {
 
 pub fn is_shutting_down() -> bool {
   SHUTTING_DOWN.load(atomic::Ordering::Relaxed)
+}
+
+pub fn get_etching(txid: String) -> Option<GetEtchingResult> {
+    let txid = Txid::from_str(&txid).ok()?;
+    let cur_height = mem_latest_block_height().expect("No block height found");
+    mem_get_etching(txid).map(|(id, entry)| GetEtchingResult {
+        confirmations: cur_height - entry.block as u32 + 1,
+        rune_id: id.to_string(),
+    })
 }
 
 pub fn mem_get_config() -> Config {
