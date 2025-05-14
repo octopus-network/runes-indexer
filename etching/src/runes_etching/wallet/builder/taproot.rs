@@ -31,9 +31,7 @@ impl TaprootPayload {
             .finalize(secp, x_public_key)
             .ok()
             .ok_or(OrdError::TaprootCompute)?;
-
         let address = Address::p2tr_tweaked(taproot_spend_info.output_key(), Network::Bitcoin);
-
         Ok(Self {
             control_block: taproot_spend_info
                 .control_block(&(redeem_script.clone(), LeafVersion::TapScript))

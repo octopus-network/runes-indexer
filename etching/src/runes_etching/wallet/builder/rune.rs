@@ -53,7 +53,6 @@ impl OrdTransactionBuilder {
             input: tx_in,
             output: tx_out,
         };
-
         let tx = match self.taproot_payload.as_ref() {
             Some(taproot_payload) => self.signer.sign_reveal_transaction_schnorr(
                 taproot_payload,
