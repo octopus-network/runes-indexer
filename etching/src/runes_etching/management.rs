@@ -7,7 +7,7 @@ use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
 use ic_ic00_types::{DerivationPath, ECDSAPublicKeyArgs, ECDSAPublicKeyResponse, EcdsaCurve, EcdsaKeyId, SignWithECDSAArgs, SignWithECDSAReply};
 use serde::de::DeserializeOwned;
 use serde_derive::{Deserialize, Serialize};
-use crate::logs::CRITICAL;
+use common::logs::CRITICAL;
 use crate::runes_etching::error::{CallError, Reason};
 use crate::runes_etching::etching_state::read_state;
 

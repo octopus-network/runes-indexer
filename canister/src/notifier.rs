@@ -1,4 +1,4 @@
-use crate::logs::CRITICAL;
+use common::logs::CRITICAL;
 use candid::{self, CandidType, Principal};
 use ic_canister_log::log;
 

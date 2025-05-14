@@ -9,7 +9,7 @@ use icrc_ledger_types::icrc1::account::Account;
 use icrc_ledger_types::icrc2::allowance::{Allowance, AllowanceArgs};
 use icrc_ledger_types::icrc2::transfer_from::TransferFromArgs;
 use num_traits::ToPrimitive;
-use crate::logs::INFO;
+use common::logs::INFO;
 use crate::runes_etching::constants::POSTAGE;
 use crate::runes_etching::etching_state::mutate_state;
 use crate::runes_etching::Utxo;

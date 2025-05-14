@@ -5,9 +5,15 @@ use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs
 use ic_cdk_macros::{init, post_upgrade, query, update};
 use runes_indexer::config::RunesIndexerArgs;
 use runes_indexer::index::entry::Entry;
-use runes_indexer::logs::{CRITICAL, INFO, WARNING};
+use common::logs::{CRITICAL, INFO, WARNING};
 use runes_indexer_interface::{Error, GetEtchingResult, RuneBalance, RuneEntry, Terms};
 use std::str::FromStr;
+use ic_cdk::caller;
+use etching::runes_etching::etching_state::update_bitcoin_fee_rate;
+use etching::runes_etching::EtchingArgs;
+use etching::runes_etching::guard::RequestEtchingGuard;
+use etching::runes_etching::transactions::internal_etching;
+use etching::runes_etching::types::SetTxFeePerVbyteArgs;
 
 pub const MAX_OUTPOINTS: usize = 256;
 
@@ -221,7 +227,7 @@ fn http_request(
     ic_cdk::trap("update call rejected");
   }
   if req.path() == "/logs" {
-    runes_indexer::logs::do_reply(req)
+    common::logs::do_reply(req)
   } else {
     ic_canisters_http_types::HttpResponseBuilder::not_found().build()
   }
@@ -258,6 +264,24 @@ fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
     _ => ic_cdk::trap(
       "Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.",
     ),
+  }
+}
+
+/*----------------etching interfaces-------------------*/
+
+#[update]
+pub async fn etching(args: EtchingArgs) -> Result<String, String> {
+  let _guard = RequestEtchingGuard::new().ok_or("system busy, try later again")?;
+  internal_etching(args).await
+}
+
+#[update]
+pub fn set_tx_fee_per_vbyte(args: SetTxFeePerVbyteArgs) -> Result<(), String> {
+  if  ic_cdk::api::is_controller(&caller()) {
+    update_bitcoin_fee_rate(args.into());
+    Ok(())
+  } else {
+    Err("Unauthorized".to_string())
   }
 }
 

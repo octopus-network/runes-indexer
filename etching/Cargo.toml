@@ -40,3 +40,4 @@ num-traits = "0.2.14"
 ic-crypto-extended-bip32 = { git = "https://github.com/dfinity/ic", tag = "release-2024-01-18_23-01" }
 icrc-ledger-types = { git = "https://github.com/dfinity/ic", tag = "release-2024-01-18_23-01" }
 icrc-ledger-client-cdk = { git = "https://github.com/dfinity/ic", tag = "release-2024-01-18_23-01" }
+common = {path = "../common"}

@@ -1,8 +1,6 @@
 use std::borrow::Cow;
-use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use anyhow::anyhow;
 use bitcoin::{Address, Amount, PublicKey, Transaction, Txid};
 use candid::{CandidType, Deserialize};
 use ic_canister_log::log;
@@ -12,7 +10,7 @@ use ic_stable_structures::Storable;
 
 use ordinals::{Etching, Rune, SpacedRune, Terms};
 use serde::Serialize;
-use crate::logs::INFO;
+use common::logs::INFO;
 use crate::runes_etching::constants::POSTAGE;
 use crate::runes_etching::fee_calculator::{
     check_allowance, select_utxos, transfer_etching_fees, FIXED_COMMIT_TX_VBYTES, INPUT_SIZE_VBYTES,
@@ -162,63 +160,6 @@ pub async fn etching_rune(
         });
     }
     Ok((send_res, allowance))
-}
-
-
-pub async fn etching_rune_v2(
-    fee_rate: u64,
-    args: &InternalEtchingArgs,
-) -> anyhow::Result<SendEtchingRequest> {
-    let (_, reveal_size) =
-        estimate_tx_vbytes(args.rune_name.as_str(), args.logo.clone()).await?;
-    let vins = select_utxos(fee_rate, reveal_size as u64 + FIXED_COMMIT_TX_VBYTES)?;
-    log!(INFO, "selected fee utxos: {:?}", vins);
-    let commit_size = vins.len() as u64 * INPUT_SIZE_VBYTES + FIXED_COMMIT_TX_VBYTES;
-    let fee = Fees {
-        commit_fee: Amount::from_sat(commit_size * fee_rate),
-        reveal_fee: Amount::from_sat(reveal_size as u64 * fee_rate + POSTAGE * 2),
-    };
-    let result = generate_etching_transactions(fee, vins.clone(), args)
-        .await
-        .map_err(|e| {
-            mutate_state(|s| {
-                for in_utxo in vins.clone() {
-                    s.etching_fee_utxos
-                        .push(&in_utxo)
-                        .expect("retire utxo failed");
-                }
-            });
-            e
-        })?;
-    let mut send_res = SendEtchingRequest {
-        etching_args: args.clone(),
-        txs: result.txs.clone(),
-        err_info: None,
-        commit_at: ic_cdk::api::time(),
-        reveal_at: 0,
-        script_out_address: result.script_out_address.clone(),
-        status: SendCommitSuccess,
-    };
-    if let Err(e) = management::send_etching(&result.txs[0]).await {
-        send_res.status = SendCommitFailed;
-        send_res.err_info = Some(e);
-    }
-    //修改fee utxo列表
-    if send_res.status == SendCommitSuccess {
-        //insert_utxo
-        if let Some(u) = find_commit_remain_fee(&send_res.txs.first().cloned().unwrap()) {
-            let _ = mutate_state(|s| s.etching_fee_utxos.push(&u));
-        }
-    } else {
-        mutate_state(|s| {
-            for in_utxo in vins {
-                s.etching_fee_utxos
-                    .push(&in_utxo)
-                    .expect("retire utxo failed1");
-            }
-        });
-    }
-    Ok(send_res)
 }
 
 pub async fn generate_etching_transactions(
@@ -409,9 +350,16 @@ pub async fn estimate_tx_vbytes(
     Ok((commit_tx.unsigned_tx.vsize(), reveal_transaction.vsize()))
 }
 
-pub async fn internal_etching(fee_rate: u64, args: EtchingArgs) -> Result<String, String> {
-    let space_rune = SpacedRune::from_str(args.rune_name.as_str()).map_err(|e| e.to_string())?;
-    let caller = caller();
+pub async fn internal_etching(args: EtchingArgs) -> Result<String, String> {
+    let fee_rate = read_state(|s|{
+        let high = s.bitcoin_fee_rate.high;
+        if high == 0 {
+            5
+        }else {
+            high
+        }
+    });
+    let _ = SpacedRune::from_str(args.rune_name.as_str()).map_err(|e| e.to_string())?;
     args.check().map_err(|e| e.to_string())?;
     let internal_args: InternalEtchingArgs = args;
     let r = etching_rune(fee_rate, &internal_args).await;

@@ -383,6 +383,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "ic-canister-log",
+ "ic-canisters-http-types",
+ "ic-cdk",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "time",
+]
+
+[[package]]
 name = "comparable"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -715,6 +728,7 @@ dependencies = [
  "candid",
  "chrono",
  "ciborium",
+ "common",
  "hex",
  "ic-btc-interface",
  "ic-canister-log",
@@ -1914,6 +1928,8 @@ dependencies = [
  "bitcoincore-rpc-json",
  "candid",
  "chrono",
+ "common",
+ "etching",
  "hex",
  "ic-canister-log",
  "ic-canisters-http-types",

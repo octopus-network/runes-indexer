@@ -5,7 +5,7 @@ use crate::config::Config;
 use crate::index::entry::{
   ChangeRecord, HeaderValue, OutPointValue, RuneBalances, RuneIdValue, TxidValue,
 };
-use crate::logs::{CRITICAL, INFO};
+use common::logs::{CRITICAL, INFO};
 use anyhow::anyhow;
 use bitcoin::{
   block::Header,

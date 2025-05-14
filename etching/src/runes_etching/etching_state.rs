@@ -1,8 +1,9 @@
-use serde_derive::Serialize;
+use serde_derive::{Deserialize, Serialize};
 
 
 use std::cell::RefCell;
 use std::ops::Deref;
+use candid::CandidType;
 use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
 use ic_ic00_types::{ DerivationPath};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableVec};
@@ -12,13 +13,15 @@ use crate::runes_etching::management::ecdsa_public_key;
 use ic_crypto_sha2::Sha256;
 use crate::runes_etching::address::BitcoinAddress;
 use crate::runes_etching::transactions::SendEtchingRequest;
-use crate::runes_etching::types::EtchingAccountInfo;
+use crate::runes_etching::types::{BitcoinFeeRate, EtchingAccountInfo};
 
 type VMem = VirtualMemory<DefaultMemoryImpl>;
 
 const ETCHING_FEE_UTXOS_MEMORY_ID: MemoryId = MemoryId::new(101);
 const PENDING_ETCHING_REQUESTS_MEMORY_ID: MemoryId = MemoryId::new(102);
 const FINALIZED_ETCHING_REQUESTS_MEMORY_ID: MemoryId = MemoryId::new(103);
+
+
 thread_local! {
     static __STATE: RefCell<Option<EtchingState>> = RefCell::default();
     
@@ -42,6 +45,12 @@ pub struct EtchingState {
     pub finalized_etching_requests: StableBTreeMap<String, SendEtchingRequest, VMem>,
     #[serde(default)]
     pub etching_fee: Option<u64>,
+    #[serde(default)]
+    pub bitcoin_fee_rate: BitcoinFeeRate,
+    #[serde(default)]
+    pub is_process_etching_msg: bool,
+    #[serde(default)]
+    pub is_request_etching: bool,
 }
 
 pub fn init_etching_fee_utxos() -> StableVec<crate::runes_etching::Utxo, VMem> {
@@ -91,7 +100,6 @@ pub fn replace_state(state: EtchingState) {
     });
 }
 
-
 pub async fn init_etching_account_info() -> EtchingAccountInfo {
     let account_info = read_state(|s| s.etching_acount_info.clone());
     if account_info.is_inited() {
@@ -118,4 +126,8 @@ pub async fn init_etching_account_info() -> EtchingAccountInfo {
         s.etching_acount_info = account_info.clone();
     });
     account_info
+}
+
+pub fn update_bitcoin_fee_rate(fee_rate: BitcoinFeeRate) {
+    mutate_state(|s|s.bitcoin_fee_rate = fee_rate);
 }

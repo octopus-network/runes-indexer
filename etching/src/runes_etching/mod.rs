@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use anyhow::anyhow;
 use base64::Engine;
 pub use bitcoin;
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize};
 use ordinals::{Etching, SpacedRune};
 use serde::Serialize;
 use std::str::FromStr;
@@ -21,7 +21,7 @@ pub use wallet::{
     CreateCommitTransaction, OrdTransactionBuilder, RevealTransactionArgs,
     SignCommitTransactionArgs, Utxo, Wallet,
 };
-use crate::runes_etching::transactions::{SendEtchingInfo, SendEtchingRequest};
+use crate::runes_etching::transactions::SendEtchingInfo;
 use crate::runes_etching::transactions::EtchingStatus::Initial;
 
 pub mod error;
@@ -32,11 +32,13 @@ pub mod sync;
 pub mod transactions;
 pub mod utils;
 pub mod wallet;
-mod etching_state;
-mod types;
+pub mod etching_state;
+pub mod types;
 pub mod management;
 mod address;
 mod destination;
+mod task;
+pub mod guard;
 
 #[derive(CandidType, Clone, Default, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct EtchingArgs {

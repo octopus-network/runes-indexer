@@ -1,7 +1,7 @@
 use self::rune_updater::RuneUpdater;
 use super::*;
 use crate::index::reorg::Reorg;
-use crate::logs::{CRITICAL, INFO};
+use common::logs::{CRITICAL, INFO};
 use crate::timestamp;
 use candid::Principal;
 

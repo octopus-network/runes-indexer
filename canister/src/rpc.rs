@@ -1,5 +1,5 @@
 use super::Result;
-use crate::logs::{DEBUG, ERROR};
+use common::logs::{DEBUG, ERROR};
 use anyhow::anyhow;
 use bitcoin::{consensus::encode, Block};
 use bitcoin::{BlockHash, Txid};

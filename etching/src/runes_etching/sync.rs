@@ -1,8 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap};
 use std::time::Duration;
 
 use candid::CandidType;
-use ic_btc_interface::Network;
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
 use runes_indexer_interface::GetEtchingResult;
@@ -14,11 +13,10 @@ use crate::runes_etching::transactions::EtchingStatus::{
     Final, SendCommitFailed, SendRevealFailed, SendRevealSuccess,Initial
 };
 use crate::runes_etching::transactions::{EtchingStatus, SendEtchingRequest};
-use crate::runes_etching::InternalEtchingArgs;
 
-use crate::logs::INFO;
+use common::logs::INFO;
 use crate::{MIN_NANOS, SEC_NANOS};
-use crate::runes_etching::error::{CallError, Reason};
+use crate::runes_etching::error::{CallError};
 use crate::runes_etching::etching_state::{mutate_state, read_state};
 use crate::runes_etching::management::send_etching;
 
@@ -102,6 +100,7 @@ fn finalization_time_estimate(min_confirmations: u32, network: BitcoinNetwork) -
         },
     )
 }
+
 pub async fn handle_etching_result_task() {
     if read_state(|s| s.pending_etching_requests.is_empty()) {
         return;
@@ -166,7 +165,7 @@ pub async fn handle_etching_result_task() {
                     }
                 }
             }
-            EtchingStatus::Final | SendCommitFailed | SendRevealFailed | Initial=> {}
+            Final | SendCommitFailed | SendRevealFailed | Initial=> {}
         }
     }
 }

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["canister", "etching", "interface"]
+members = ["canister", "common", "etching", "interface"]
 
 [profile.release]
 lto = true
