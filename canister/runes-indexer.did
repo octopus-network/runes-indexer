@@ -5,8 +5,27 @@ type Config = record {
   subscribers : vec principal;
 };
 type Error = variant { MaxOutpointsExceeded };
+type EtchingArgs = record {
+  terms : opt OrdinalsTerms;
+  turbo : bool;
+  premine : opt nat;
+  logo : opt LogoParams;
+  rune_name : text;
+  divisibility : opt nat8;
+  premine_receiver : text;
+  symbol : opt text;
+};
 type GetEtchingResult = record { confirmations : nat32; rune_id : text };
-type Result = variant { Ok : vec opt vec RuneBalance; Err : Error };
+type LogoParams = record { content_type : text; content_base64 : text };
+type OrdinalsTerms = record {
+  cap : nat;
+  height : record { opt nat64; opt nat64 };
+  offset : record { opt nat64; opt nat64 };
+  amount : nat;
+};
+type Result = variant { Ok : text; Err : text };
+type Result_1 = variant { Ok : vec opt vec RuneBalance; Err : Error };
+type Result_2 = variant { Ok; Err : text };
 type RuneBalance = record {
   confirmations : nat32;
   divisibility : nat8;
@@ -31,6 +50,11 @@ type RuneEntry = record {
   symbol : opt text;
 };
 type RunesIndexerArgs = variant { Upgrade : opt UpgradeArgs; Init : Config };
+type SetTxFeePerVbyteArgs = record {
+  low : nat64;
+  high : nat64;
+  medium : nat64;
+};
 type Terms = record {
   cap : opt nat;
   height : record { opt nat64; opt nat64 };
@@ -42,9 +66,11 @@ type UpgradeArgs = record {
   subscribers : opt vec principal;
 };
 service : (RunesIndexerArgs) -> {
+  etching : (EtchingArgs) -> (Result);
   get_etching : (text) -> (opt GetEtchingResult) query;
   get_latest_block : () -> (nat32, text) query;
   get_rune : (text) -> (opt RuneEntry) query;
-  get_rune_balances_for_outputs : (vec text) -> (Result) query;
+  get_rune_balances_for_outputs : (vec text) -> (Result_1) query;
   get_rune_by_id : (text) -> (opt RuneEntry) query;
+  set_tx_fee_per_vbyte : (SetTxFeePerVbyteArgs) -> (Result_2);
 }

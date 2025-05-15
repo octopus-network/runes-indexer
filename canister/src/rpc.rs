@@ -1,9 +1,9 @@
 use super::Result;
-use crate::logs::{DEBUG, ERROR};
 use anyhow::anyhow;
 use bitcoin::{consensus::encode, Block};
 use bitcoin::{BlockHash, Txid};
 use bitcoincore_rpc_json::{GetBlockHeaderResult, GetRawTransactionResult};
+use common::logs::{DEBUG, ERROR};
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::http_request::*;
 use serde::{Deserialize, Serialize};

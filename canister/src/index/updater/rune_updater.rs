@@ -1,7 +1,7 @@
 use super::*;
 use crate::index::entry::RuneBalance;
 use crate::into_usize::IntoUsize;
-use crate::logs::WARNING;
+use common::logs::WARNING;
 
 pub(super) struct RuneUpdater {
   pub(super) block_time: u32,
