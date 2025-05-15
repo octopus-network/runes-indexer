@@ -1,10 +1,10 @@
 mod bitcoin_api;
 pub mod config;
+pub mod etchin_tasks;
 pub mod index;
 mod into_usize;
 mod notifier;
 pub mod rpc;
-pub mod etchin_tasks;
 use anyhow::Error;
 use chrono::{DateTime, TimeZone, Utc};
 

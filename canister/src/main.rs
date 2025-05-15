@@ -1,22 +1,22 @@
-use bitcoin::{OutPoint};
+use bitcoin::OutPoint;
 use candid::{candid_method, Principal};
-use ic_canister_log::log;
-use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
-use ic_cdk_macros::{init, post_upgrade, query, update};
-use runes_indexer::config::RunesIndexerArgs;
-use runes_indexer::index::entry::Entry;
 use common::logs::{CRITICAL, INFO, WARNING};
-use runes_indexer_interface::{Error, GetEtchingResult, RuneBalance, RuneEntry, Terms};
-use std::str::FromStr;
-use std::time::Duration;
-use ic_cdk::caller;
-use ic_cdk_timers::set_timer_interval;
 use etching::runes_etching::etching_state::{update_bitcoin_fee_rate, EtchingUpgradeArgs};
-use etching::runes_etching::EtchingArgs;
 use etching::runes_etching::guard::RequestEtchingGuard;
 use etching::runes_etching::transactions::internal_etching;
 use etching::runes_etching::types::SetTxFeePerVbyteArgs;
+use etching::runes_etching::EtchingArgs;
+use ic_canister_log::log;
+use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
+use ic_cdk::caller;
+use ic_cdk_macros::{init, post_upgrade, query, update};
+use ic_cdk_timers::set_timer_interval;
+use runes_indexer::config::RunesIndexerArgs;
 use runes_indexer::etchin_tasks::process_etching_task;
+use runes_indexer::index::entry::Entry;
+use runes_indexer_interface::{Error, GetEtchingResult, RuneBalance, RuneEntry, Terms};
+use std::str::FromStr;
+use std::time::Duration;
 
 pub const MAX_OUTPOINTS: usize = 256;
 
@@ -244,7 +244,10 @@ fn init(runes_indexer_args: RunesIndexerArgs) {
 }
 
 #[post_upgrade]
-fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>, etching_args: Option<EtchingUpgradeArgs>) {
+fn post_upgrade(
+  runes_indexer_args: Option<RunesIndexerArgs>,
+  etching_args: Option<EtchingUpgradeArgs>,
+) {
   match runes_indexer_args {
     Some(RunesIndexerArgs::Upgrade(Some(upgrade_args))) => {
       let mut config = runes_indexer::index::mem_get_config();
@@ -262,14 +265,13 @@ fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>, etching_args: Opti
       "Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.",
     ),
   }
-  
-  //Etching 
+
+  //Etching
   if let Some(args) = etching_args {
-      etching::runes_etching::etching_state::post_upgrade(args);
+    etching::runes_etching::etching_state::post_upgrade(args);
   }
   //start etching task
   set_timer_interval(Duration::from_secs(10), process_etching_task);
-
 }
 
 /*----------------etching interfaces-------------------*/
@@ -282,7 +284,7 @@ pub async fn etching(args: EtchingArgs) -> Result<String, String> {
 
 #[update]
 pub fn set_tx_fee_per_vbyte(args: SetTxFeePerVbyteArgs) -> Result<(), String> {
-  if  ic_cdk::api::is_controller(&caller()) {
+  if ic_cdk::api::is_controller(&caller()) {
     update_bitcoin_fee_rate(args.into());
     Ok(())
   } else {

@@ -1,5 +1,5 @@
-use common::logs::CRITICAL;
 use candid::{self, CandidType, Principal};
+use common::logs::CRITICAL;
 use ic_canister_log::log;
 
 type BlockHeight = u32;
