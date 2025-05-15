@@ -50,7 +50,7 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
                   .map(|(_, txid)| txid.to_string())
                   .collect();
                 let block_timestamp = block.header.time as u64;
-                if let Err(e) = index_block(height, block).await {
+                if let Err(e) = index_block(network, height, block).await {
                   log!(
                     CRITICAL,
                     "failed to index_block at height {}: {:?}",
@@ -136,7 +136,7 @@ pub fn update_index(network: BitcoinNetwork, subscribers: Vec<Principal>) -> Res
   Ok(())
 }
 
-async fn index_block(height: u32, block: BlockData) -> Result<()> {
+async fn index_block(network: BitcoinNetwork, height: u32, block: BlockData) -> Result<()> {
   log!(
     INFO,
     "Block {} at {} with {} transactions…",
@@ -168,11 +168,17 @@ async fn index_block(height: u32, block: BlockData) -> Result<()> {
   crate::index::mem_insert_statistic_runes(height, runes);
   crate::index::mem_insert_statistic_reserved_runes(height, reserved_runes);
 
+  let network = match network {
+    BitcoinNetwork::Mainnet => bitcoin::Network::Bitcoin,
+    BitcoinNetwork::Testnet => bitcoin::Network::Testnet4,
+    BitcoinNetwork::Regtest => bitcoin::Network::Regtest,
+  };
+
   let mut rune_updater = RuneUpdater {
     block_time: block.header.time,
     burned: HashMap::new(),
     height,
-    minimum: Rune::minimum_at_height(bitcoin::Network::Bitcoin, Height(height)),
+    minimum: Rune::minimum_at_height(network, Height(height)),
     runes,
     change_record: ChangeRecord::new(),
   };
