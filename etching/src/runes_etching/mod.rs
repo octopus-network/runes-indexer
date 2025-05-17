@@ -34,7 +34,6 @@ pub mod inscription;
 pub mod management;
 pub mod result;
 pub mod sync;
-mod task;
 pub mod transactions;
 pub mod types;
 pub mod utils;
