@@ -1,12 +1,15 @@
 use bitcoin::{Amount, OutPoint};
 use candid::{candid_method, Principal};
 use common::logs::{CRITICAL, INFO, WARNING};
-use etching::runes_etching::etching_state::{init_etching_account_info, mutate_state, no_initial, replace_state, update_bitcoin_fee_rate, EtchingState};
+use etching::runes_etching::etching_state::EtchingUpgradeArgs;
+use etching::runes_etching::etching_state::{
+  init_etching_account_info, mutate_state, no_initial, replace_state, update_bitcoin_fee_rate,
+  EtchingState,
+};
 use etching::runes_etching::guard::RequestEtchingGuard;
 use etching::runes_etching::transactions::internal_etching;
 use etching::runes_etching::types::{EtchingAccountInfo, SetTxFeePerVbyteArgs, UtxoArgs};
 use etching::runes_etching::EtchingArgs;
-use etching::runes_etching::etching_state::EtchingUpgradeArgs;
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
 use ic_cdk::caller;
@@ -268,7 +271,7 @@ fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
 }
 #[update]
 pub async fn init_etching_sender_account() -> EtchingAccountInfo {
-    init_etching_account_info().await
+  init_etching_account_info().await
 }
 
 #[update]
@@ -289,7 +292,7 @@ pub fn etching_post_upgrade(args: EtchingUpgradeArgs) {
     EtchingUpgradeArgs::Upgrade(args) => {
       if let Some(a) = args {
         if let Some(fee) = a.etching_fee {
-          mutate_state(|s|s.etching_fee = Some(fee));
+          mutate_state(|s| s.etching_fee = Some(fee));
         }
       }
     }

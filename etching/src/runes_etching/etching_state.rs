@@ -9,11 +9,11 @@ use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
 use ic_crypto_sha2::Sha256;
 use ic_ic00_types::DerivationPath;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
+use ic_stable_structures::writer::Writer;
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableVec};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use std::ops::Deref;
-use ic_stable_structures::writer::Writer;
 
 type VMem = VirtualMemory<DefaultMemoryImpl>;
 
@@ -173,35 +173,35 @@ pub struct EtchingStateArgs {
 }
 
 pub fn post_upgrade() {
-    use ic_stable_structures::Memory;
-    let memory = get_upgrade_stash_memory();
-    // Read the length of the state bytes.
-    let mut state_len_bytes = [0; 4];
-    memory.read(0, &mut state_len_bytes);
-    let state_len = u32::from_le_bytes(state_len_bytes) as usize;
-    let mut state_bytes = vec![0; state_len];
-    memory.read(4, &mut state_bytes);
-    let state: EtchingState =
-        ciborium::de::from_reader(&*state_bytes).expect("failed to decode state");
-    replace_state(state);
+  use ic_stable_structures::Memory;
+  let memory = get_upgrade_stash_memory();
+  // Read the length of the state bytes.
+  let mut state_len_bytes = [0; 4];
+  memory.read(0, &mut state_len_bytes);
+  let state_len = u32::from_le_bytes(state_len_bytes) as usize;
+  let mut state_bytes = vec![0; state_len];
+  memory.read(4, &mut state_bytes);
+  let state: EtchingState =
+    ciborium::de::from_reader(&*state_bytes).expect("failed to decode state");
+  replace_state(state);
 }
 
 pub fn get_upgrade_stash_memory() -> VMem {
-    with_memory_manager(|m| m.get(UPGRADE_STASH_MEMORY_ID))
+  with_memory_manager(|m| m.get(UPGRADE_STASH_MEMORY_ID))
 }
 
 impl EtchingState {
-    pub fn pre_upgrade(&self) {
-        let mut state_bytes = vec![];
-        let _ = ciborium::ser::into_writer(self, &mut state_bytes);
-        let len = state_bytes.len() as u32;
-        let mut memory = get_upgrade_stash_memory();
-        let mut writer = Writer::new(&mut memory, 0);
-        writer
-            .write(&len.to_le_bytes())
-            .expect("failed to save hub state len");
-        writer
-            .write(&state_bytes)
-            .expect("failed to save hub state");
-    }
+  pub fn pre_upgrade(&self) {
+    let mut state_bytes = vec![];
+    let _ = ciborium::ser::into_writer(self, &mut state_bytes);
+    let len = state_bytes.len() as u32;
+    let mut memory = get_upgrade_stash_memory();
+    let mut writer = Writer::new(&mut memory, 0);
+    writer
+      .write(&len.to_le_bytes())
+      .expect("failed to save hub state len");
+    writer
+      .write(&state_bytes)
+      .expect("failed to save hub state");
+  }
 }

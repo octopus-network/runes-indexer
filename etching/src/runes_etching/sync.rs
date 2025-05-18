@@ -85,66 +85,66 @@ fn finalization_time_estimate(min_confirmations: u32, network: BitcoinNetwork) -
   )
 }
 
-pub async fn handle_etching_result_task(f: impl Fn(String) -> Option<GetEtchingResult>)
-{
-    if no_initial() {
-        return;
-    }
-    if read_state(|s| s.pending_etching_requests.is_empty()) {
-        return;
-    }
-    let network = read_state(|s| s.btc_network);
-    let kvs = read_state(|s| {
-        s.pending_etching_requests
-            .iter()
-            .collect::<BTreeMap<String, SendEtchingRequest>>()
-    });
-    for (k, mut req) in kvs {
-        match req.status.clone() {
-            EtchingStatus::SendCommitSuccess => {
-                if !check_time(4, req.commit_at) {
-                    continue;
-                }
-                let balance = get_bitcoin_balance(
-                    network,
-                    &req.script_out_address,
-                    6,
-                )
-                .await
-                .unwrap_or_default();
-                if balance == 0 {
-                    continue;
-                }
-                let r = send_etching(&req.txs[1]).await;
-                if r.is_err() {
-                    req.status = SendRevealFailed;
-                    req.err_info = r.err();
-                } else {
-                    req.status = SendRevealSuccess
-                }
-                req.reveal_at = ic_cdk::api::time();
-                mutate_state(|s| s.pending_etching_requests.insert(k, req));
-            }
-            SendRevealSuccess => {
-                if !check_time(1, req.reveal_at) {
-                    continue;
-                }
-                let tx = req.txs[1].compute_txid().to_string();
-                let rune = f(tx.clone());
-                match rune {
-                    None => {
-                    }
-                    Some(resp) => {
-                        mutate_state(|s| {
-                            req.status = Final;
-                            s.finalized_etching_requests.insert(k.clone(), req);
-                        });
-                        mutate_state(|s| s.pending_etching_requests.remove(&k));
-                        log!(INFO, "Etching result:  {}.{}, {}",tx, resp.rune_id.clone(),resp.confirmations);
-                    }
-                }
-            }
-            Final | SendCommitFailed | SendRevealFailed | Initial=> {}
+pub async fn handle_etching_result_task(f: impl Fn(String) -> Option<GetEtchingResult>) {
+  if no_initial() {
+    return;
+  }
+  if read_state(|s| s.pending_etching_requests.is_empty()) {
+    return;
+  }
+  let network = read_state(|s| s.btc_network);
+  let kvs = read_state(|s| {
+    s.pending_etching_requests
+      .iter()
+      .collect::<BTreeMap<String, SendEtchingRequest>>()
+  });
+  for (k, mut req) in kvs {
+    match req.status.clone() {
+      EtchingStatus::SendCommitSuccess => {
+        if !check_time(4, req.commit_at) {
+          continue;
         }
+        let balance = get_bitcoin_balance(network, &req.script_out_address, 6)
+          .await
+          .unwrap_or_default();
+        if balance == 0 {
+          continue;
+        }
+        let r = send_etching(&req.txs[1]).await;
+        if r.is_err() {
+          req.status = SendRevealFailed;
+          req.err_info = r.err();
+        } else {
+          req.status = SendRevealSuccess
+        }
+        req.reveal_at = ic_cdk::api::time();
+        mutate_state(|s| s.pending_etching_requests.insert(k, req));
+      }
+      SendRevealSuccess => {
+        if !check_time(1, req.reveal_at) {
+          continue;
+        }
+        let tx = req.txs[1].compute_txid().to_string();
+        let rune = f(tx.clone());
+        match rune {
+          None => {}
+          Some(resp) => {
+            mutate_state(|s| {
+              req.status = Final;
+              s.finalized_etching_requests.insert(k.clone(), req);
+            });
+            mutate_state(|s| s.pending_etching_requests.remove(&k));
+            log!(
+              INFO,
+              "Etching result:  {}.{}, {}",
+              tx,
+              resp.rune_id.clone(),
+              resp.confirmations
+            );
+          }
+        }
+      }
+      Final | SendCommitFailed | SendRevealFailed | Initial => {}
     }
+  }
 }
