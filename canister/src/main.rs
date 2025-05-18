@@ -266,9 +266,10 @@ fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
       "Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.",
     ),
   }
-  //etching::runes_etching::etching_state::post_upgrade();
+  etching::runes_etching::etching_state::post_upgrade();
   set_timer_interval(Duration::from_secs(10), process_etching_task);
 }
+
 #[update]
 pub async fn init_etching_sender_account() -> EtchingAccountInfo {
   init_etching_account_info().await

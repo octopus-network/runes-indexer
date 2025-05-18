@@ -79,7 +79,7 @@ fn finalization_time_estimate(min_confirmations: u32, network: BitcoinNetwork) -
     min_confirmations as u64
       * match network {
         BitcoinNetwork::Mainnet => 7 * MIN_NANOS,
-        BitcoinNetwork::Testnet => MIN_NANOS,
+        BitcoinNetwork::Testnet => 7 * MIN_NANOS,
         BitcoinNetwork::Regtest => SEC_NANOS,
       },
   )
