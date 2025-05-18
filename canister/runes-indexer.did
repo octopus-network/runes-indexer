@@ -5,6 +5,11 @@ type Config = record {
   subscribers : vec principal;
 };
 type Error = variant { MaxOutpointsExceeded };
+type EtchingAccountInfo = record {
+  derive_path : text;
+  pubkey : text;
+  address : text;
+};
 type EtchingArgs = record {
   terms : opt OrdinalsTerms;
   turbo : bool;
@@ -14,6 +19,15 @@ type EtchingArgs = record {
   divisibility : opt nat8;
   premine_receiver : text;
   symbol : opt text;
+};
+type EtchingStateArgs = record {
+  ecdsa_key_name : text;
+  etching_fee : opt nat64;
+  btc_network : BitcoinNetwork;
+};
+type EtchingUpgradeArgs = variant {
+  Upgrade : opt EtchingStateArgs;
+  Init : EtchingStateArgs;
 };
 type GetEtchingResult = record { confirmations : nat32; rune_id : text };
 type LogoParams = record { content_type : text; content_base64 : text };
@@ -65,12 +79,16 @@ type UpgradeArgs = record {
   bitcoin_rpc_url : opt text;
   subscribers : opt vec principal;
 };
+type UtxoArgs = record { id : text; index : nat32; amount : nat64 };
 service : (RunesIndexerArgs) -> {
   etching : (EtchingArgs) -> (Result);
+  etching_post_upgrade : (EtchingUpgradeArgs) -> ();
   get_etching : (text) -> (opt GetEtchingResult) query;
   get_latest_block : () -> (nat32, text) query;
   get_rune : (text) -> (opt RuneEntry) query;
   get_rune_balances_for_outputs : (vec text) -> (Result_1) query;
   get_rune_by_id : (text) -> (opt RuneEntry) query;
+  init_etching_sender_account : () -> (EtchingAccountInfo);
+  set_etching_fee_utxos : (vec UtxoArgs) -> ();
   set_tx_fee_per_vbyte : (SetTxFeePerVbyteArgs) -> (Result_2);
 }

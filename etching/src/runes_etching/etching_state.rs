@@ -19,6 +19,7 @@ type VMem = VirtualMemory<DefaultMemoryImpl>;
 const ETCHING_FEE_UTXOS_MEMORY_ID: MemoryId = MemoryId::new(101);
 const PENDING_ETCHING_REQUESTS_MEMORY_ID: MemoryId = MemoryId::new(102);
 const FINALIZED_ETCHING_REQUESTS_MEMORY_ID: MemoryId = MemoryId::new(103);
+const UPGRADE_STASH_MEMORY_ID: MemoryId = MemoryId::new(110);
 
 thread_local! {
     static __STATE: RefCell<Option<EtchingState>> = RefCell::default();
@@ -157,7 +158,7 @@ pub fn update_bitcoin_fee_rate(fee_rate: BitcoinFeeRate) {
   mutate_state(|s| s.bitcoin_fee_rate = fee_rate);
 }
 
-#[derive(CandidType, serde::Deserialize)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum EtchingUpgradeArgs {
   Init(EtchingStateArgs),
   Upgrade(Option<EtchingStateArgs>),
@@ -170,20 +171,36 @@ pub struct EtchingStateArgs {
   pub etching_fee: Option<u64>,
 }
 
-pub fn post_upgrade(upgrade_args: EtchingUpgradeArgs) {
-  match upgrade_args {
-    EtchingUpgradeArgs::Init(args) => {
-      if no_initial() {
-        let state = EtchingState::from(args);
-        replace_state(state)
-      }
+pub fn post_upgrade() {
+    use ic_stable_structures::Memory;
+    let memory = get_upgrade_stash_memory();
+    // Read the length of the state bytes.
+    let mut state_len_bytes = [0; 4];
+    memory.read(0, &mut state_len_bytes);
+    let state_len = u32::from_le_bytes(state_len_bytes) as usize;
+    let mut state_bytes = vec![0; state_len];
+    memory.read(4, &mut state_bytes);
+    let state: EtchingState =
+        ciborium::de::from_reader(&*state_bytes).expect("failed to decode state");
+    replace_state(state);
+}
+
+pub fn get_upgrade_stash_memory() -> VMem {
+    with_memory_manager(|m| m.get(UPGRADE_STASH_MEMORY_ID))
+}
+
+impl EtchingState {
+    pub fn pre_upgrade(&self) {
+        let mut state_bytes = vec![];
+        let _ = ciborium::ser::into_writer(self, &mut state_bytes);
+        let len = state_bytes.len() as u32;
+        let mut memory = get_upgrade_stash_memory();
+        let mut writer = Writer::new(&mut memory, 0);
+        writer
+            .write(&len.to_le_bytes())
+            .expect("failed to save hub state len");
+        writer
+            .write(&state_bytes)
+            .expect("failed to save hub state");
     }
-    EtchingUpgradeArgs::Upgrade(args) => {
-      if let Some(a) = args {
-        if let Some(fee) = a.etching_fee {
-          mutate_state(|s| s.etching_fee = Some(fee));
-        }
-      }
-    }
-  }
 }

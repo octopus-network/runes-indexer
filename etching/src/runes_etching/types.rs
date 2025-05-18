@@ -28,6 +28,13 @@ pub struct SetTxFeePerVbyteArgs {
   pub high: u64,
 }
 
+/// Unspent transaction output to be used as input of a transaction
+#[derive(CandidType, Debug, Clone, Serialize, Deserialize)]
+pub struct UtxoArgs {
+    pub id: String,
+    pub index: u32,
+    pub amount: u64,
+}
 impl From<SetTxFeePerVbyteArgs> for BitcoinFeeRate {
   fn from(value: SetTxFeePerVbyteArgs) -> Self {
     BitcoinFeeRate {
