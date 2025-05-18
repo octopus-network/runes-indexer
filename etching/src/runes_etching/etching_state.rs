@@ -13,6 +13,7 @@ use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableVec};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use std::ops::Deref;
+use ic_stable_structures::writer::Writer;
 
 type VMem = VirtualMemory<DefaultMemoryImpl>;
 
