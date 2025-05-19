@@ -272,7 +272,7 @@ fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
     ),
   }
   etching::runes_etching::etching_state::post_upgrade();
-  set_timer_interval(Duration::from_secs(10), process_etching_task);
+  set_timer_interval(Duration::from_secs(300), process_etching_task);
 }
 
 #[update]

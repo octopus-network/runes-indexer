@@ -79,7 +79,7 @@ fn finalization_time_estimate(min_confirmations: u32, network: BitcoinNetwork) -
     min_confirmations as u64
       * match network {
         BitcoinNetwork::Mainnet => 7 * MIN_NANOS,
-        BitcoinNetwork::Testnet => 7 * MIN_NANOS,
+        BitcoinNetwork::Testnet => 20 * MIN_NANOS,
         BitcoinNetwork::Regtest => SEC_NANOS,
       },
   )
@@ -101,7 +101,7 @@ pub async fn handle_etching_result_task(f: impl Fn(String) -> Option<GetEtchingR
   for (k, mut req) in kvs {
     match req.status.clone() {
       EtchingStatus::SendCommitSuccess => {
-        if !check_time(4, req.commit_at) {
+        if !check_time(6, req.commit_at) {
           continue;
         }
         let balance = get_bitcoin_balance(network, &req.script_out_address, 6)
