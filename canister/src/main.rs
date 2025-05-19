@@ -1,7 +1,7 @@
 use bitcoin::{Amount, OutPoint};
 use candid::{candid_method, Principal};
 use common::logs::{CRITICAL, INFO, WARNING};
-use etching::runes_etching::etching_state::EtchingUpgradeArgs;
+use etching::runes_etching::etching_state::{read_state, EtchingUpgradeArgs};
 use etching::runes_etching::etching_state::{
   init_etching_account_info, mutate_state, no_initial, replace_state, update_bitcoin_fee_rate,
   EtchingState,
@@ -9,11 +9,11 @@ use etching::runes_etching::etching_state::{
 use etching::runes_etching::guard::RequestEtchingGuard;
 use etching::runes_etching::transactions::internal_etching;
 use etching::runes_etching::types::{EtchingAccountInfo, SetTxFeePerVbyteArgs, UtxoArgs};
-use etching::runes_etching::EtchingArgs;
+use etching::runes_etching::{EtchingArgs, Utxo};
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
 use ic_cdk::caller;
-use ic_cdk_macros::{init, post_upgrade, query, update};
+use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
 use ic_cdk_timers::set_timer_interval;
 use runes_indexer::config::RunesIndexerArgs;
 use runes_indexer::etchin_tasks::process_etching_task;
@@ -247,6 +247,11 @@ fn init(runes_indexer_args: RunesIndexerArgs) {
   }
 }
 
+#[pre_upgrade]
+fn pre_upgrade() {
+  read_state(|s|s.pre_upgrade());
+}
+
 #[post_upgrade]
 fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
   match runes_indexer_args {
@@ -332,6 +337,12 @@ pub fn is_controller() -> Result<(), String> {
   } else {
     Err("caller is not controller".to_string())
   }
+}
+
+#[query]
+pub fn etching_fees() -> Vec<UtxoArgs> {
+  let r = read_state(|s|s.etching_fee_utxos.iter().collect::<Vec<Utxo>>());
+  r.iter().map(|s|s.clone().into()).collect()
 }
 
 ic_cdk::export_candid!();

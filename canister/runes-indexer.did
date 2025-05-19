@@ -82,6 +82,7 @@ type UpgradeArgs = record {
 type UtxoArgs = record { id : text; index : nat32; amount : nat64 };
 service : (RunesIndexerArgs) -> {
   etching : (EtchingArgs) -> (Result);
+  etching_fees : () -> (vec UtxoArgs) query;
   etching_post_upgrade : (EtchingUpgradeArgs) -> ();
   get_etching : (text) -> (opt GetEtchingResult) query;
   get_latest_block : () -> (nat32, text) query;
