@@ -10,10 +10,11 @@ use ic_crypto_sha2::Sha256;
 use ic_ic00_types::DerivationPath;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::writer::Writer;
-use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableVec};
+use ic_stable_structures::{DefaultMemoryImpl, Memory, StableBTreeMap, StableVec};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use std::ops::Deref;
+use ic_cdk::api::stable::WASM_PAGE_SIZE_IN_BYTES;
 
 type VMem = VirtualMemory<DefaultMemoryImpl>;
 
@@ -55,9 +56,9 @@ pub struct EtchingState {
   pub etching_fee: Option<u64>,
   #[serde(default)]
   pub bitcoin_fee_rate: BitcoinFeeRate,
-  #[serde(default)]
+  #[serde(skip)]
   pub is_process_etching_msg: bool,
-  #[serde(default)]
+  #[serde(skip)]
   pub is_request_etching: bool,
 }
 
@@ -177,6 +178,9 @@ pub fn post_upgrade() {
   let memory = get_upgrade_stash_memory();
   // Read the length of the state bytes.
   let mut state_len_bytes = [0; 4];
+  if state_len_bytes.len() as u64 > memory.size() * WASM_PAGE_SIZE_IN_BYTES as u64 {
+      return;
+  }
   memory.read(0, &mut state_len_bytes);
   let state_len = u32::from_le_bytes(state_len_bytes) as usize;
   let mut state_bytes = vec![0; state_len];

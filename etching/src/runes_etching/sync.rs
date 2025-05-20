@@ -14,10 +14,10 @@ use crate::runes_etching::transactions::EtchingStatus::{
 };
 use crate::runes_etching::transactions::{EtchingStatus, SendEtchingRequest};
 
-use crate::runes_etching::etching_state::{mutate_state, no_initial, read_state};
+use crate::runes_etching::etching_state::{mutate_state, read_state};
 use crate::runes_etching::management::send_etching;
 use crate::{MIN_NANOS, SEC_NANOS};
-use common::logs::INFO;
+use common::logs::{ERROR, INFO};
 
 #[derive(Debug, Eq, PartialEq, Error, CandidType, Deserialize)]
 enum OrdError {
@@ -70,7 +70,7 @@ fn check_time(confirmation_blocks: u32, req_time: u64) -> bool {
   let network = read_state(|s| s.btc_network);
   let wait_time = finalization_time_estimate(confirmation_blocks, network);
   let check_timeline = req_time + (wait_time.as_nanos() as u64);
-  let check_time_window = Duration::from_secs(21600).as_nanos() as u64;
+  let check_time_window = Duration::from_secs(36000).as_nanos() as u64;
   check_timeline < now && now < check_timeline + check_time_window
 }
 
@@ -79,16 +79,13 @@ fn finalization_time_estimate(min_confirmations: u32, network: BitcoinNetwork) -
     min_confirmations as u64
       * match network {
         BitcoinNetwork::Mainnet => 7 * MIN_NANOS,
-        BitcoinNetwork::Testnet => 20 * MIN_NANOS,
+        BitcoinNetwork::Testnet => 10 * MIN_NANOS,
         BitcoinNetwork::Regtest => SEC_NANOS,
       },
   )
 }
 
 pub async fn handle_etching_result_task(f: impl Fn(String) -> Option<GetEtchingResult>) {
-  if no_initial() {
-    return;
-  }
   if read_state(|s| s.pending_etching_requests.is_empty()) {
     return;
   }
@@ -99,14 +96,22 @@ pub async fn handle_etching_result_task(f: impl Fn(String) -> Option<GetEtchingR
       .collect::<BTreeMap<String, SendEtchingRequest>>()
   });
   for (k, mut req) in kvs {
-    match req.status.clone() {
+    match  req.status {
       EtchingStatus::SendCommitSuccess => {
         if !check_time(6, req.commit_at) {
-          continue;
+           continue;
         }
-        let balance = get_bitcoin_balance(network, &req.script_out_address, 6)
-          .await
-          .unwrap_or_default();
+        let balance = match get_bitcoin_balance(network, &req.script_out_address, 6)
+          .await {
+          Ok(v) => {
+            v
+          }
+          Err(e) => {
+            log!(ERROR, "QUERY ETCHING BALANCE ERROR {}, {}", k.clone(), e.to_string());
+            0
+          }
+        };
+          
         if balance == 0 {
           continue;
         }
