@@ -10,7 +10,7 @@ use ic_crypto_sha2::Sha256;
 use ic_ic00_types::DerivationPath;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::writer::Writer;
-use ic_stable_structures::{DefaultMemoryImpl, Memory, StableBTreeMap, StableVec};
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableVec};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use std::ops::Deref;

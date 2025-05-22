@@ -1,7 +1,7 @@
 use bitcoin::{Amount, OutPoint};
 use candid::{candid_method, Principal};
 use common::logs::{CRITICAL, INFO, WARNING};
-use etching::runes_etching::etching_state::{read_state};
+use etching::runes_etching::etching_state::{no_initial, read_state, replace_state, EtchingState, EtchingUpgradeArgs};
 use etching::runes_etching::etching_state::{
     init_etching_account_info, mutate_state, update_bitcoin_fee_rate,
 };
