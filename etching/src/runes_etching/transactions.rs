@@ -24,6 +24,7 @@ use crate::runes_etching::{
 use common::logs::INFO;
 use ordinals::{Etching, SpacedRune, Terms};
 use serde::Serialize;
+use crate::DEFAULT_ETCHING_FEE_IN_ICP;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct SendEtchingRequest {
@@ -112,7 +113,7 @@ pub async fn etching_rune(
 ) -> anyhow::Result<(SendEtchingRequest, u64)> {
   let (_commit_tx_size, reveal_size) =
     estimate_tx_vbytes(args.rune_name.as_str(), args.logo.clone()).await?;
-  let icp_fee_amt = read_state(|s| s.etching_fee).unwrap_or(100000000);
+  let icp_fee_amt = read_state(|s| s.etching_fee).unwrap_or(DEFAULT_ETCHING_FEE_IN_ICP);
   let allowance = check_allowance(icp_fee_amt).await?;
   let vins = select_utxos(fee_rate, reveal_size as u64 + FIXED_COMMIT_TX_VBYTES)?;
   log!(INFO, "selected fee utxos: {:?}", vins);

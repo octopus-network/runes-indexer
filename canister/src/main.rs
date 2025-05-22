@@ -20,6 +20,7 @@ use runes_indexer::index::entry::Entry;
 use runes_indexer_interface::{Error, GetEtchingResult, RuneBalance, RuneEntry, Terms};
 use std::str::FromStr;
 use std::time::Duration;
+use etching::DEFAULT_ETCHING_FEE_IN_ICP;
 
 pub const MAX_OUTPOINTS: usize = 256;
 
@@ -340,7 +341,7 @@ pub fn is_controller() -> Result<(), String> {
 }
 
 #[query]
-pub fn etching_fees() -> Vec<UtxoArgs> {
+pub fn etching_fee_utxos() -> Vec<UtxoArgs> {
     let r = read_state(|s| s.etching_fee_utxos.iter().collect::<Vec<Utxo>>());
     r.iter().map(|s| s.clone().into()).collect()
 }
@@ -353,6 +354,11 @@ pub fn get_etching_request(key: String) -> Option<SendEtchingInfo> {
         return r;
     }
     read_state(|s| s.finalized_etching_requests.get(&key)).map(|r|r.into())
+}
+
+#[query]
+pub fn query_etching_fee() -> u64 {
+    read_state(|s|s.etching_fee.unwrap_or(DEFAULT_ETCHING_FEE_IN_ICP))
 }
 
 ic_cdk::export_candid!();
