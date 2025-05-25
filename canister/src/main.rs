@@ -1,13 +1,28 @@
-use bitcoin::{OutPoint, Txid};
+use bitcoin::{Amount, OutPoint};
 use candid::{candid_method, Principal};
+use common::logs::{CRITICAL, INFO, WARNING};
+use etching::runes_etching::etching_state::{
+  init_etching_account_info, mutate_state, update_bitcoin_fee_rate,
+};
+use etching::runes_etching::etching_state::{
+  no_initial, read_state, replace_state, EtchingState, EtchingUpgradeArgs,
+};
+use etching::runes_etching::guard::RequestEtchingGuard;
+use etching::runes_etching::transactions::{internal_etching, SendEtchingInfo};
+use etching::runes_etching::types::{EtchingAccountInfo, SetTxFeePerVbyteArgs, UtxoArgs};
+use etching::runes_etching::{EtchingArgs, Utxo};
+use etching::DEFAULT_ETCHING_FEE_IN_ICP;
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
-use ic_cdk_macros::{init, post_upgrade, query, update};
+use ic_cdk::caller;
+use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
+use ic_cdk_timers::set_timer_interval;
 use runes_indexer::config::RunesIndexerArgs;
+use runes_indexer::etchin_tasks::process_etching_task;
 use runes_indexer::index::entry::Entry;
-use runes_indexer::logs::{CRITICAL, INFO, WARNING};
 use runes_indexer_interface::{Error, GetEtchingResult, RuneBalance, RuneEntry, Terms};
 use std::str::FromStr;
+use std::time::Duration;
 
 pub const MAX_OUTPOINTS: usize = 256;
 
@@ -21,13 +36,7 @@ pub fn get_latest_block() -> (u32, String) {
 #[query]
 #[candid_method(query)]
 pub fn get_etching(txid: String) -> Option<GetEtchingResult> {
-  let txid = Txid::from_str(&txid).ok()?;
-  let cur_height = runes_indexer::index::mem_latest_block_height().expect("No block height found");
-
-  runes_indexer::index::mem_get_etching(txid).map(|(id, entry)| GetEtchingResult {
-    confirmations: cur_height - entry.block as u32 + 1,
-    rune_id: id.to_string(),
-  })
+  runes_indexer::index::get_etching(txid)
 }
 
 #[query]
@@ -221,7 +230,7 @@ fn http_request(
     ic_cdk::trap("update call rejected");
   }
   if req.path() == "/logs" {
-    runes_indexer::logs::do_reply(req)
+    common::logs::do_reply(req)
   } else {
     ic_canisters_http_types::HttpResponseBuilder::not_found().build()
   }
@@ -238,6 +247,11 @@ fn init(runes_indexer_args: RunesIndexerArgs) {
       "Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.",
     ),
   }
+}
+
+#[pre_upgrade]
+fn pre_upgrade() {
+  read_state(|s| s.pre_upgrade());
 }
 
 #[post_upgrade]
@@ -259,6 +273,94 @@ fn post_upgrade(runes_indexer_args: Option<RunesIndexerArgs>) {
       "Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.",
     ),
   }
+  etching::runes_etching::etching_state::post_upgrade();
+  set_timer_interval(Duration::from_secs(300), process_etching_task);
+  log!(INFO, "post_upgrade successfully");
+}
+
+#[update]
+pub async fn init_etching_sender_account() -> EtchingAccountInfo {
+  init_etching_account_info().await
+}
+
+#[update]
+pub async fn etching(args: EtchingArgs) -> Result<String, String> {
+  let _guard = RequestEtchingGuard::new().ok_or("system busy, try later again")?;
+  internal_etching(args).await
+}
+
+#[update(guard = "is_controller")]
+pub fn etching_post_upgrade(args: EtchingUpgradeArgs) {
+  match args {
+    EtchingUpgradeArgs::Init(args) => {
+      if no_initial() {
+        let state = EtchingState::from(args);
+        replace_state(state)
+      }
+    }
+    EtchingUpgradeArgs::Upgrade(args) => {
+      if let Some(a) = args {
+        if let Some(fee) = a.etching_fee {
+          mutate_state(|s| s.etching_fee = Some(fee));
+        }
+      }
+    }
+  }
+}
+
+#[update]
+pub fn set_tx_fee_per_vbyte(args: SetTxFeePerVbyteArgs) -> Result<(), String> {
+  if ic_cdk::api::is_controller(&caller()) {
+    update_bitcoin_fee_rate(args.into());
+    Ok(())
+  } else {
+    Err("Unauthorized".to_string())
+  }
+}
+
+#[update(guard = "is_controller")]
+pub fn set_etching_fee_utxos(us: Vec<UtxoArgs>) {
+  for a in us {
+    let utxo = etching::runes_etching::Utxo {
+      id: bitcoin::hash_types::Txid::from_str(a.id.as_str()).unwrap(),
+      index: a.index,
+      amount: Amount::from_sat(a.amount),
+    };
+    mutate_state(|s| {
+      if s.etching_fee_utxos.iter().find(|x| *x == utxo).is_none() {
+        let _ = s.etching_fee_utxos.push(&utxo);
+      }
+    });
+  }
+}
+
+pub fn is_controller() -> Result<(), String> {
+  if ic_cdk::api::is_controller(&ic_cdk::caller()) {
+    Ok(())
+  } else {
+    Err("caller is not controller".to_string())
+  }
+}
+
+#[query]
+pub fn etching_fee_utxos() -> Vec<UtxoArgs> {
+  let r = read_state(|s| s.etching_fee_utxos.iter().collect::<Vec<Utxo>>());
+  r.iter().map(|s| s.clone().into()).collect()
+}
+
+#[query]
+pub fn get_etching_request(key: String) -> Option<SendEtchingInfo> {
+  let r: Option<SendEtchingInfo> =
+    read_state(|s| s.pending_etching_requests.get(&key)).map(|r| r.into());
+  if r.is_some() {
+    return r;
+  }
+  read_state(|s| s.finalized_etching_requests.get(&key)).map(|r| r.into())
+}
+
+#[query]
+pub fn query_etching_fee() -> u64 {
+  read_state(|s| s.etching_fee.unwrap_or(DEFAULT_ETCHING_FEE_IN_ICP))
 }
 
 ic_cdk::export_candid!();

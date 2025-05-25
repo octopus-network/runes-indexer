@@ -5,7 +5,6 @@ use crate::config::Config;
 use crate::index::entry::{
   ChangeRecord, HeaderValue, OutPointValue, RuneBalances, RuneIdValue, TxidValue,
 };
-use crate::logs::{CRITICAL, INFO};
 use anyhow::anyhow;
 use bitcoin::{
   block::Header,
@@ -15,6 +14,7 @@ use bitcoin::{
   hashes::Hash,
   Block, OutPoint, Transaction, Txid,
 };
+use common::logs::{CRITICAL, INFO};
 use ic_canister_log::log;
 use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
@@ -22,9 +22,11 @@ use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableCell};
 use ordinals::{
   Artifact, Edict, Etching, Height, Pile, Rune, RuneId, Runestone, SatPoint, SpacedRune, Terms,
 };
+use runes_indexer_interface::GetEtchingResult;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::atomic::{self, AtomicBool};
 
 pub mod entry;
@@ -112,6 +114,15 @@ pub fn cancel_shutdown() {
 
 pub fn is_shutting_down() -> bool {
   SHUTTING_DOWN.load(atomic::Ordering::Relaxed)
+}
+
+pub fn get_etching(txid: String) -> Option<GetEtchingResult> {
+  let txid = Txid::from_str(&txid).ok()?;
+  let cur_height = mem_latest_block_height().expect("No block height found");
+  mem_get_etching(txid).map(|(id, entry)| GetEtchingResult {
+    confirmations: cur_height - entry.block as u32 + 1,
+    rune_id: id.to_string(),
+  })
 }
 
 pub fn mem_get_config() -> Config {
