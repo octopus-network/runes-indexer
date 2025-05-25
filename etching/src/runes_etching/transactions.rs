@@ -21,10 +21,10 @@ use crate::runes_etching::{
   management, EtchingArgs, InternalEtchingArgs, LogoParams, Nft, OrdResult, OrdTransactionBuilder,
   SignCommitTransactionArgs, Utxo,
 };
+use crate::DEFAULT_ETCHING_FEE_IN_ICP;
 use common::logs::INFO;
 use ordinals::{Etching, SpacedRune, Terms};
 use serde::Serialize;
-use crate::DEFAULT_ETCHING_FEE_IN_ICP;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct SendEtchingRequest {

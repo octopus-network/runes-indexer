@@ -96,22 +96,24 @@ pub async fn handle_etching_result_task(f: impl Fn(String) -> Option<GetEtchingR
       .collect::<BTreeMap<String, SendEtchingRequest>>()
   });
   for (k, mut req) in kvs {
-    match  req.status {
+    match req.status {
       EtchingStatus::SendCommitSuccess => {
         if !check_time(6, req.commit_at) {
-           continue;
+          continue;
         }
-        let balance = match get_bitcoin_balance(network, &req.script_out_address, 6)
-          .await {
-          Ok(v) => {
-            v
-          }
+        let balance = match get_bitcoin_balance(network, &req.script_out_address, 6).await {
+          Ok(v) => v,
           Err(e) => {
-            log!(ERROR, "QUERY ETCHING BALANCE ERROR {}, {}", k.clone(), e.to_string());
+            log!(
+              ERROR,
+              "QUERY ETCHING BALANCE ERROR {}, {}",
+              k.clone(),
+              e.to_string()
+            );
             0
           }
         };
-          
+
         if balance == 0 {
           continue;
         }

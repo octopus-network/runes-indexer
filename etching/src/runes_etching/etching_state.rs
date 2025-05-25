@@ -6,6 +6,7 @@ use crate::runes_etching::transactions::SendEtchingRequest;
 use crate::runes_etching::types::{BitcoinFeeRate, EtchingAccountInfo};
 use candid::CandidType;
 use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
+use ic_cdk::api::stable::WASM_PAGE_SIZE_IN_BYTES;
 use ic_crypto_sha2::Sha256;
 use ic_ic00_types::DerivationPath;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
@@ -14,7 +15,6 @@ use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, StableVec};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 use std::ops::Deref;
-use ic_cdk::api::stable::WASM_PAGE_SIZE_IN_BYTES;
 
 type VMem = VirtualMemory<DefaultMemoryImpl>;
 
@@ -179,7 +179,7 @@ pub fn post_upgrade() {
   // Read the length of the state bytes.
   let mut state_len_bytes = [0; 4];
   if state_len_bytes.len() as u64 > memory.size() * WASM_PAGE_SIZE_IN_BYTES as u64 {
-      return;
+    return;
   }
   memory.read(0, &mut state_len_bytes);
   let state_len = u32::from_le_bytes(state_len_bytes) as usize;
