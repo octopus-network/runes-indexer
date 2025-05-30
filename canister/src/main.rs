@@ -303,6 +303,9 @@ pub fn etching_post_upgrade(args: EtchingUpgradeArgs) {
         if let Some(fee) = a.etching_fee {
           mutate_state(|s| s.etching_fee = Some(fee));
         }
+        if let Some(p) = a.mpc_principal {
+          mutate_state(|s| s.mpc_principal = Some(p));
+        }
       }
     }
   }
@@ -310,7 +313,11 @@ pub fn etching_post_upgrade(args: EtchingUpgradeArgs) {
 
 #[update]
 pub fn set_tx_fee_per_vbyte(args: SetTxFeePerVbyteArgs) -> Result<(), String> {
-  if ic_cdk::api::is_controller(&caller()) {
+  let caller = caller();
+  let Some(mpc_principal) = read_state(|s|s.mpc_principal) else { 
+      return Err("Unauthorized".to_string())
+  };
+  if caller == mpc_principal || ic_cdk::api::is_controller(&caller) {
     update_bitcoin_fee_rate(args.into());
     Ok(())
   } else {

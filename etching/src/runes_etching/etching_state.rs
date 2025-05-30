@@ -4,7 +4,7 @@ use crate::runes_etching::address::BitcoinAddress;
 use crate::runes_etching::management::ecdsa_public_key;
 use crate::runes_etching::transactions::SendEtchingRequest;
 use crate::runes_etching::types::{BitcoinFeeRate, EtchingAccountInfo};
-use candid::CandidType;
+use candid::{CandidType, Principal};
 use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
 use ic_cdk::api::stable::WASM_PAGE_SIZE_IN_BYTES;
 use ic_crypto_sha2::Sha256;
@@ -56,6 +56,8 @@ pub struct EtchingState {
   pub etching_fee: Option<u64>,
   #[serde(default)]
   pub bitcoin_fee_rate: BitcoinFeeRate,
+  #[serde(default)]
+  pub mpc_principal: Option<Principal>,
   #[serde(skip)]
   pub is_process_etching_msg: bool,
   #[serde(skip)]
@@ -73,6 +75,7 @@ impl From<EtchingStateArgs> for EtchingState {
       finalized_etching_requests: init_finalized_etching_requests(),
       etching_fee: value.etching_fee,
       bitcoin_fee_rate: Default::default(),
+      mpc_principal: value.mpc_principal,
       is_process_etching_msg: false,
       is_request_etching: false,
     }
@@ -171,6 +174,7 @@ pub struct EtchingStateArgs {
   pub btc_network: BitcoinNetwork,
   pub ecdsa_key_name: String,
   pub etching_fee: Option<u64>,
+  pub mpc_principal: Option<Principal>
 }
 
 pub fn post_upgrade() {
