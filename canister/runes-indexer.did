@@ -24,6 +24,7 @@ type EtchingStateArgs = record {
   ecdsa_key_name : text;
   etching_fee : opt nat64;
   btc_network : BitcoinNetwork;
+  mpc_principal : opt principal;
 };
 type EtchingStatus = variant {
   SendRevealSuccess;
