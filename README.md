@@ -1,6 +1,6 @@
 # Runes Indexer (formerly Ord Canister)
 
-![GitHub License](https://img.shields.io/github/license/octopus-network/runes-indexer)
+[![GitHub License](https://img.shields.io/github/license/octopus-network/runes-indexer)](https://github.com/octopus-network/runes-indexer/blob/master/LICENSE)
 ![Crates.io Version](https://img.shields.io/crates/v/runes-indexer-interface)
 
 
